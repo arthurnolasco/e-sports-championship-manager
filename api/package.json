@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node --env-file=.env server/server.js",
     "test": "jest --env node"
   },
   "author": "",
