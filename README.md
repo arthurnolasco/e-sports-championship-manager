@@ -1,45 +1,139 @@
-A aplicação é um site de gerenciamento de campeonatos e-sports, permitindo que os usuários registrem partidas, visualizem informações sobre campeonatos e jogadores.
-A aplicação envolve as seguintes entidades principais:
+# e-Coliseu — e-sports championship manager
 
-Partida: Registra detalhes sobre partidas específicas, como duração, mapas e campeonato pertencente.
+A full-stack web app to manage e-sports championships: championships, teams, players, matches and who played each match. Built as the final project for the Database course at UFMG, with a REST API in Node.js and Express, a PostgreSQL database and a vanilla HTML/CSS/JavaScript front end.
 
-Campeonato: Permite a criação e gerenciamento de campeonatos. Os usuários podem registrar campeonatos, deletar campeonatos, atualizar dados do campeonato e observar informações sobre os campeonatos.
+## Architecture
 
-Jogador: As informações sobre jogadores podem ser registradas e associadas aos times participantes dos campeonatos.
+```mermaid
+flowchart LR
+    F[Front end<br/>HTML · CSS · JavaScript] -->|fetch · JSON| A[REST API<br/>Node.js · Express]
+    A -->|pg-promise| D[(PostgreSQL)]
+```
 
-Time: Permite a manipulação (adição, remoção e atualização) dos dados do time, como: nome do time, treinador do time, campeonato associado e chave ID
+The API follows a layered structure: **routes** handle HTTP, **services** apply the business rules and **data** modules run the SQL queries.
 
-Jogo: O relacionamento jogo mostra o ID da partida e o jogador participante da partida
+## Data model
 
-Pré-requisitos
-Antes de começar, certifique-se de ter o seguinte instalado em sua máquina:
-Node.js - para executar o servidor
-POSTGRESQL - para o banco de dados
-VSCode
+```mermaid
+erDiagram
+    CAMPEONATO ||--o{ TEAM : "has"
+    CAMPEONATO ||--o{ PARTIDA : "has"
+    TEAM ||--o{ USUARIO : "has players"
+    PARTIDA ||--o{ JOGA : "played in"
+    USUARIO ||--o{ JOGA : "plays"
 
-Passos
-1. Configurar o Banco de Dados
-Na pasta database, você encontrará os scripts SQL necessários para criar as tabelas do banco de dados. Execute esses scripts no seu servidor POSTGRESQL para criar o esquema do banco de dados.
+    CAMPEONATO {
+        serial idCamp PK
+        varchar nomeCamp
+        varchar modalidade
+        varchar jogo
+        smallint qtdTimes
+    }
+    TEAM {
+        serial idTime PK
+        varchar nomeTime
+        varchar treinador
+        smallint CidCamp FK
+    }
+    USUARIO {
+        varchar nomeUsuario PK
+        varchar nome
+        varchar sobrenome
+        date dataNascimento
+        smallint TidTime FK
+    }
+    PARTIDA {
+        serial idPartida PK
+        varchar duracao
+        varchar mapa
+        smallint CidCamp FK
+    }
+    JOGA {
+        serial PidPartida PK
+        varchar UnomeUsuario PK
+    }
+```
 
-2. Configurar o Servidor
-Abra o arquivo api/server/server.js em um terminal.
-Modifique as configurações de conexão com o banco de dados localizada em ./api/server/infra/database.js para corresponder às suas credenciais de POSTGRESQL:  
-javascript  
-const dbConfig = {  
-  user: 'seu_usuario',  
-  password: 'sua_senha',  
-  host: 'localhost', //local host  
-  port: 5432, //sua porta  
-  database: 'seu_banco_de_dados'  
-};
+Foreign keys use `ON UPDATE CASCADE`; deleting a championship removes its matches and unlinks its teams (`SET NULL`). Schema: [`database/create.sql`](database/create.sql). Sample data: [`database/insertion.sql`](database/insertion.sql).
 
-4. Iniciar o Servidor
-Abra o terminal na pasta api do projeto.
-Instale as dependências do servidor (encontradas em "./api/package.json") executando o seguinte comando:
-npm install {dependencia}
-Após a instalação das dependências, inicie o servidor com o seguinte comando:
-"nodemon server"
+## API
 
-5. Executar o Frontend
-Abra o terminal na pasta frontend do projeto.
-Inicie um servidor local para o frontend (você pode usar o Live Server se estiver usando o Visual Studio Code) ou abra diretamente o arquivo frontend/index.html em um navegador.
+| Resource | Endpoints |
+|---|---|
+| Championships | `GET /camps` · `GET /camps/:id` · `POST /camps` · `PUT /camps/:id` · `DELETE /camps/:id` |
+| Teams | `GET /times` · `GET /times/:id` · `POST /times` · `PUT /times/:id` · `DELETE /times/:id` |
+| Players | `GET /usuario` · `GET /usuario/:id` · `POST /usuario` · `PUT /usuario/:id` · `DELETE /usuario/:id` |
+| Matches | `GET /partida` · `GET /partida/:id` · `POST /partida` · `PUT /partida/:id` · `DELETE /partida/:id` |
+| Match participation | `GET /jogo` · `GET /jogo/:id` · `POST /jogo` · `DELETE /jogo/:id` |
+
+Request and response bodies are JSON with lowercase field names, for example:
+
+```bash
+curl -X POST http://localhost:3000/camps \
+  -H 'Content-Type: application/json' \
+  -d '{"idcamp":10,"nomecamp":"Spring Cup","modalidade":"5x5","jogo":"Valorant","qtdtimes":8}'
+```
+
+## Run locally
+
+Requirements: Node.js 20.6+ and PostgreSQL (or Docker).
+
+**1. Database**
+
+With Docker, run this from the repository root. It creates the database and loads the schema and sample data automatically (on PowerShell, replace `$(pwd)` with `${PWD}`):
+
+```bash
+docker run -d --name ecoliseu-db -p 5432:5432 \
+  -e POSTGRES_PASSWORD=change-me -e POSTGRES_DB=tp_bd \
+  -v "$(pwd)/database:/docker-entrypoint-initdb.d:ro" postgres:16
+```
+
+With a local PostgreSQL, create a database named `tp_bd` and run `database/create.sql` and then `database/insertion.sql`.
+
+**2. API**
+
+```bash
+cd api
+cp .env.example .env    # set DB_PASSWORD (and the other values if needed)
+npm install
+npm start
+```
+
+The API listens on `http://localhost:3000`.
+
+**3. Front end**
+
+Open `frontEnd/index.html` in the browser, or serve the folder with any static server (for example the VS Code Live Server extension).
+
+## Project structure
+
+```
+api/
+├── server/
+│   ├── server.js        # Express app and route registration
+│   ├── route/           # HTTP routes per resource
+│   ├── service/         # business rules
+│   ├── data/            # SQL queries
+│   └── infra/database.js
+└── .env.example
+database/                # schema and sample data
+frontEnd/                # HTML, CSS (SCSS) and JavaScript
+artefatos_engenharia_de_software/   # requirements document, UML diagrams and Figma prototype
+```
+
+## Software engineering artifacts
+
+The project was designed before it was coded: [`artefatos_engenharia_de_software/`](artefatos_engenharia_de_software) holds the requirements document, class, use-case and activity diagrams (Astah) and the Figma prototype.
+
+## Limitations
+
+This is an academic project:
+
+- IDs are provided by the client instead of being generated by the database.
+- There is no authentication.
+- Errors are returned with Express's default error page instead of structured JSON.
+- The interface and database names are in Portuguese, as required by the course.
+
+## Author
+
+Arthur Nolasco — [github.com/arthurnolasco](https://github.com/arthurnolasco)
