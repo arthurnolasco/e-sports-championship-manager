@@ -13,7 +13,7 @@ exports.getUser = async function (nomeUsuario) {
 };
 
 exports.saveUser = async function (user) {
-  const existingUser = await usersData.getUser(user.nomeUsuario);
+  const existingUser = await usersData.getUser(user.nomeusuario);
   if (existingUser) {
     throw new Error("Usuário já existe");
   }

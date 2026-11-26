@@ -17,32 +17,24 @@ app.use("/", usuarioRoute);
 app.use("/", partidaRoute);
 app.use("/", jogaRoute);
 
-// NEW ADDITION TEST BEGIN 07/08
-app.post("/addTime", async (req, res) => {
-  try {
-    const { username, nomeTime, treinador } = req.body;
+// PostgreSQL error codes: https://www.postgresql.org/docs/current/errcodes-appendix.html
+const INVALID_DATA_CODES = ["23502", "23503", "22P02", "22001", "22007", "22008"];
 
-    // Insert the data into the database
-    const result = await db.none(
-      "INSERT INTO times (username, nomeTime, treinador) VALUES ($1, $2, $3)",
-      [username, nomeTime, treinador]
-    );
-
-    res.status(200).json({ message: "Time added successfully" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to add time" });
+app.use(function (error, req, res, next) {
+  if (/não (encontrad[oa]|existe)/i.test(error.message)) {
+    return res.status(404).json({ error: error.message });
   }
+  if (/já existe/i.test(error.message)) {
+    return res.status(409).json({ error: error.message });
+  }
+  if (error.code === "23505") {
+    return res.status(409).json({ error: "Registro já existe", detail: error.detail });
+  }
+  if (INVALID_DATA_CODES.includes(error.code)) {
+    return res.status(400).json({ error: "Dados inválidos", detail: error.detail || error.message });
+  }
+  console.error(error);
+  res.status(500).json({ error: "Erro interno do servidor" });
 });
 
-// NEW ADDITION ENDPOINT
-
-// app.use(function(error, req, res, next){
-//   if(error.message === 'Campeonato já existe' || error.message === 'Time já existe'){
-//      return res.status(409).send(error.message);
-//   }
-//   if (error.message === 'Campeonato não encontrado' || error.message === 'Time não encontrado'){
-//      return res.status(404).send(error.message);
-//   }
-//   res.status(500).send(error.message);
-// });
 app.listen(3000);

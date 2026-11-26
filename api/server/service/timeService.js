@@ -13,7 +13,7 @@ exports.getTime = async function (idTime) {
 };
 
 exports.saveTime = async function (time) {
-  const existingTime = await timesData.getTime(time.idTime);
+  const existingTime = await timesData.getTime(time.idtime);
   if (existingTime) {
     throw new Error("Time já existe");
   }

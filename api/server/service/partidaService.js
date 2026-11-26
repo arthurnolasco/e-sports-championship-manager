@@ -13,7 +13,7 @@ exports.getPartida = async function (idPartida) {
 };
 
 exports.savePartida = async function (partida) {
-  const existingPartida = await partidasData.getPartida(partida.idPartida);
+  const existingPartida = await partidasData.getPartida(partida.idpartida);
   if (existingPartida) {
     throw new Error("Partida já existe");
   }

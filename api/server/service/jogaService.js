@@ -12,11 +12,8 @@ exports.getJogo = async function (PidPartida) {
   return jogaData.getJogo(PidPartida);
 };
 
-exports.saveJogo = async function (jogo) {
-  const existingJogo = await jogaData.getJogo(jogo.PidPartida);
-  if (existingJogo) {
-    throw new Error("Jogo já existe");
-  }
+exports.saveJogo = function (jogo) {
+  // A match has several players; the (match, player) primary key rejects duplicates.
   return jogaData.saveJogo(jogo);
 };
 

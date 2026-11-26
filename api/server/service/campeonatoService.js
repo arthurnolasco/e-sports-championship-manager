@@ -13,7 +13,7 @@ exports.getCamp = async function (idCamp) {
 };
 
 exports.saveCamp = async function (camp) {
-  const existingCamp = await campsData.getCamp(camp.idCamp);
+  const existingCamp = await campsData.getCamp(camp.idcamp);
   if (existingCamp) {
     throw new Error("Campeonato já existe");
   }
